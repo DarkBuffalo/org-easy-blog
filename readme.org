@@ -1,0 +1,14 @@
+#+TITLE: Easy blogging with orgmode
+
+
+Call =M-x: easy-blog=
+
+
+* labo
+
+#+begin_src emacs-lisp
+(print (mapcar 'car org-publish-project-alist) )
+#+end_src
+
+#+RESULTS:
+| posts | about | notes | css | images | assets | rss | delta |
