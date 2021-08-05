@@ -1,7 +1,12 @@
 #+TITLE: Easy blogging with orgmode
 
+Call =M-x: org-easy-blog=
 
-Call =M-x: easy-blog=
+
+#+caption: Accueil
+#+attr_latex: :width 300px
+[[file:img/accueil.png]]
+
 
 
 - https://github.com/masasam/emacs-easy-hugo
