@@ -145,6 +145,31 @@ CONDITION can also be a list of error conditions."
 	(org-easy-blog-default-ext . ,org-easy-blog-default-ext))
       org-easy-blog-bloglist)
 
+;; SERVE
+(defvar org-easy-blog--server-process nil
+  "Server process.")
+
+(defvar org-easy-blog--local-port
+  "3000"
+  "Port to serve local blog instance.")
+
+;;;###autoload
+(defun org-easy-blog-preview ()
+  "Preview at localhost."
+  (interactive)
+  (let ((default-directory (expand-file-name org-easy-blog-basedir))) ;;change to public dir 
+    (setq org-easy-blog--server-process
+          (start-process "org-easy-blog--server-process" nil "python" "-m" "http.server" (format "%s" org-easy-blog--local-port)))
+    (browse-url (format "http://localhost:%s" md/blog-local-port))))
+
+(defun org-easy-blog-preview-end ()
+  "Finish previewing hugo at localhost."
+  (unless (null org-easy-blog--server-process)
+    (delete-process org-easy-blog--server-process))
+  ;;(when (get-buffer easy-hugo--preview-buffer)
+  ;;  (kill-buffer easy-hugo--preview-buffer))
+  )
+
 
 (defcustom org-easy-blog-help
   (if (null org-easy-blog-sort-default-char)
@@ -155,7 +180,7 @@ v .. Open view-mode   s .. Sort time     T .. Publish timer    N .. No help-mode
 d .. Delete post      c .. Open config   W .. AWS S3 timer     f .. Select filename
 P .. Publish clever   C .. Deploy GCS    a .. Search with ag   H .. GitHub timer
 < .. Previous blog    > .. Next blog     , .. Pre postdir      . .. Next postdir
-/ .. Select postdir   q .. Quit easy-hugo
+/ .. Select postdir   q .. Quit easy-blog
 ")
     (progn
       "n .. New blog post    R .. Rename file    D .. Draft list
@@ -164,7 +189,7 @@ v .. Open view-mode   s .. Sort char     T .. Publish timer    N .. No help-mode
 d .. Delete post      c .. Open config   ; .. Select blog      f .. Select filename
 P .. Publish clever   C .. Deploy GCS    a .. Search with ag   H .. GitHub timer
 < .. Previous blog    > .. Next blog     , .. Pre postdir      . .. Next postdir
-/ .. Select postdir   q .. Quit easy-hugo
+/ .. Select postdir   q .. Quit easy-blog
 "))
   "Help of `org-easy-blog'."
   :group 'org-easy-blog
@@ -219,7 +244,7 @@ L .. Firebase timer   S .. Sort time     M .. Magit status     ? .. Describe-mod
   (interactive)
   (setq org-easy-blog--sort-time-flg 1)
   (setq org-easy-blog--sort-char-flg nil)
-  (easy-hugo--preview-end)
+  (org-easy-blog-preview-end)
   (when (buffer-live-p org-easy-blog--mode-buffer)
     (kill-buffer org-easy-blog--mode-buffer)))
 
