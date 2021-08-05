@@ -235,6 +235,7 @@ L .. Firebase timer   S .. Sort time     M .. Magit status     ? .. Describe-mod
     (define-key map "q" 'org-easy-blog-quit)
     (define-key map [backtab] 'org-easy-blog-no-help)
     (define-key map "r" 'easy-hugo-refresh)
+    (define-key map "p" 'org-easy-blog-preview)
 
     map)
   "Keymap for `org-easy-blog' major mode.")
