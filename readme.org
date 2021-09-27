@@ -11,7 +11,12 @@ Call =M-x: org-easy-blog=
 
 - https://github.com/masasam/emacs-easy-hugo
 
-* TODO Multiple blog easy-hugo for inspiration
+* TASKS
+#+BEGIN_SRC md
+* [ ] https://github.com/DarkBuffalo/org-easy-blog/projects/1#card-69571876
+#+END_SRC
+
+* TODO Multiple blog easy-hugo for inspiration  :noexport:
 
 #+begin_src emacs-lisp
 ;; Main blog
