@@ -1,0 +1,79 @@
+#+TITLE: Dev
+
+* TODO Multiple blog easy-hugo for inspiration
+#+begin_src emacs-lisp
+(use-package org-easy-blog
+  :straight (org-easy-blog (:type git :host github :repo "DarkBuffalo/org-easy-blog"))
+  :init
+  ;; Main blog
+  (setq easy-hugo-basedir "~/bookshelf/")
+  (setq easy-hugo-url "https://yourblogdomain")
+  (setq easy-hugo-sshdomain "blogdomain")
+  (setq easy-hugo-root "/home/blog/")
+  (setq easy-hugo-previewtime "300")
+
+  (setq easy-hugo-bloglist
+	;; blog2 setting
+	'(((easy-hugo-basedir . "~/src/github.com/masasam/hugo2/")
+	   (easy-hugo-url . "http://example2.com")
+	   (easy-hugo-sshdomain . "myblogdomain")
+	   (easy-hugo-root . "/home/hugo/"))
+	  ;; blog3 setting for aws s3
+	  ((easy-hugo-basedir . "~/src/github.com/masasam/hugo3/")
+	   (easy-hugo-url . "http://example3.net")
+	   (easy-hugo-amazon-s3-bucket-name . "yourS3bucketname"))
+	  ;; blog4 setting for google cloud strage
+	  ((easy-hugo-basedir . "~/src/github.com/masasam/hugo4/")
+	   (easy-hugo-url . "http://example4.net")
+	   (easy-hugo-google-cloud-storage-bucket-name . "yourGCPbucketname")
+	   (easy-hugo-image-directory . "img"))
+	  ;; blog5 for github pages
+	  ((easy-hugo-basedir . "~/src/github.com/masasam/githubpages/")
+	   (easy-hugo-url . "https://yourid.github.io"))
+	  ;; blog6 for firebase hosting
+	  ((easy-hugo-basedir . "~/src/github.com/masasam/firebase/")
+	   (easy-hugo-url . "https://yourproject.firebaseapp.com"))))
+  :bind ("C-c C-e" . org-easy-blog))
+
+
+#+end_src
+
+* INSPIRATION
+
+- https://github.com/masasam/emacs-easy-hugo
+
+
+* Youtube
+
+#+begin_src html
+<div class="org-youtube"><iframe src="https://www.youtube-nocookie.com/embed/$1" allowfullscreen title="YouTube Video"></iframe></div>@
+#+end_src
+
+#+begin_src emacs-lisp
+(defun org-tufte-maybe-margin-note-link (link desc info)
+  "Render LINK as a margin note if it starts with `mn:', for
+  example, `[[mn:1][this is some text]]' is margin note 1 that
+  will show \"this is some text\" in the margin.
+If it does not, it will be passed onto the original function in
+order to be handled properly. DESC is the description part of the
+link. INFO is a plist holding contextual information."
+  (let ((path (split-string (org-element-property :path link) ":")))
+    (if (and (string= (org-element-property :type link) "fuzzy")
+             (string= (car path) "mn"))
+        (format
+         (concat "<label for=\"%s\" class=\"margin-toggle\">&#8853;</label>"
+                 "<input type=\"checkbox\" id=\"%s\" class=\"margin-toggle\"/>"
+                 "<span class=\"marginnote\">%s</span>")
+         (cadr path) (cadr path)
+         (replace-regexp-in-string "</?p.*>" "" desc))
+      (org-html-link link desc info))))
+#+end_src
+
+* labo
+
+#+begin_src emacs-lisp
+(print (mapcar 'car org-publish-project-alist) )
+#+end_src
+
+#+RESULTS:
+| posts | about | notes | css | images | assets | rss | delta |
