@@ -17,6 +17,14 @@ Call =M-x: org-easy-blog=
 - [ ] Search with ag
 - [-] Serv on local
 
+* INSTALLATION
+
+** DOOM
+#+begin_src emacs-lisp
+(package! org-easy-blog
+  :recipe (:host github :repo "DarkBuffalo/org-easy-blog"))
+#+end_src
+
 * CONTRIBUTING
 
 1. Fork it (<https://github.com/DarkBuffalo/org-easy-blog/fork>)
