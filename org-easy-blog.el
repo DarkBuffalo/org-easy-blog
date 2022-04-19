@@ -31,7 +31,7 @@
   :group 'org-easy-blog
   :type 'string)
 
-(defcustom org-easy-blog-postdir "content/post"
+(defcustom org-easy-blog-postdir "content/posts"
   "Directory where the theme stores its posts."
   :group 'org-easy-blog
   :type 'string)
@@ -157,10 +157,10 @@ CONDITION can also be a list of error conditions."
 (defun org-easy-blog-preview ()
   "Preview at localhost."
   (interactive)
-  (let ((default-directory (expand-file-name org-easy-blog-basedir))) ;;change to public dir 
+  (let ((default-directory (expand-file-name org-easy-blog-basedir)))	;;change to public dir 
     (setq org-easy-blog--server-process
           (start-process "org-easy-blog--server-process" nil "python" "-m" "http.server" (format "%s" org-easy-blog--local-port)))
-    (browse-url (format "http://localhost:%s" md/blog-local-port))))
+    (browse-url (format "http://localhost:%s" org-easy-blog--local-port))))
 
 (defun org-easy-blog-preview-end ()
   "Finish previewing hugo at localhost."
@@ -368,8 +368,13 @@ POST-FILE needs to have and extension  '.org'."
   "Easy blog mode."
   (interactive)
   (org-easy-blog-with-env
-   (unless (file-directory-p (expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
-     (error "%s%s does not exist!" org-easy-blog-basedir org-easy-blog-postdir))
+
+	 (let ((content-dir (concat org-easy-blog-basedir org-easy-blog-postdir)))
+		 (make-directory content-dir :parents))
+	 
+	 ;; (unless (file-directory-p (expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
+   ;;   (error "%s%s does not exist!" org-easy-blog-basedir org-easy-blog-postdir))
+	 
    (setq org-easy-blog--mode-buffer (get-buffer-create org-easy-blog--buffer-name))
    (setq org-easy-blog--draft-list nil)
    (switch-to-buffer org-easy-blog--mode-buffer)
@@ -378,15 +383,15 @@ POST-FILE needs to have and extension  '.org'."
    (erase-buffer)
    (if (equal (file-relative-name org-easy-blog-postdir "content") ".")
        (insert (propertize
-		(concat "org-easy-blog  " org-easy-blog-url "/" "\n\n")
-		'face
-		'org-easy-blog-help-face))
+								(concat "org-easy-blog  " org-easy-blog-url "/" "\n\n")
+								'face
+								'org-easy-blog-help-face))
      (insert (propertize
-	      (concat "org-easy-blog  " org-easy-blog-url "/"
-		      (file-relative-name org-easy-blog-postdir "content")
-		      "\n\n")
-	      'face
-	      'org-easy-blog-help-face)))
+							(concat "org-easy-blog  " org-easy-blog-url "/"
+											(file-relative-name org-easy-blog-postdir "content")
+											"\n\n")
+							'face
+							'org-easy-blog-help-face)))
    (unless org-easy-blog-no-help
      (insert (propertize org-easy-blog-help 'face 'org-easy-blog-help-face))
      (when org-easy-blog-additional-help
@@ -395,75 +400,75 @@ POST-FILE needs to have and extension  '.org'."
    (unless org-easy-blog--refresh
      (setq org-easy-blog--cursor (point)))
    (let ((files (directory-files (expand-file-name org-easy-blog-postdir org-easy-blog-basedir)))
-	 (lists (list)))
+				 (lists (list)))
      (if (eq 2 (length files))
-	 (progn
-	   (insert org-easy-blog--first-help)
-	   (org-easy-blog-mode)
-	   (goto-char org-easy-blog--cursor))
+				 (progn
+					 (insert org-easy-blog--first-help)
+					 (org-easy-blog-mode)
+					 (goto-char org-easy-blog--cursor))
        (progn
-	 (cond ((eq 1 org-easy-blog--sort-char-flg)
-		(setq files (reverse (sort files 'string<))))
-	       ((eq 2 org-easy-blog--sort-char-flg)
-		(setq files (sort files 'string<)))
-	       ((eq 1 org-easy-blog--sort-publishday-flg)
-		(let ((publist (org-easy-blog--publishday-alist)))
-		  (if publist
-		      (let ((source (sort publist
-					  (lambda (a b) (string> (car a) (car b))))))
-			(setq files nil)
-			(while source
-			  (push (file-relative-name (cdr (car source))
-						    (expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
-				files)
-			  (pop source)))
-		    (message "There is no file written date in front matter"))))
-	       ((eq 2 org-easy-blog--sort-publishday-flg)
-		(let ((publist (org-easy-blog--publishday-alist)))
-		  (if publist
-		      (let ((source (reverse (sort publist
-						   (lambda (a b) (string> (car a) (car b)))))))
-			(setq files nil)
-			(while source
-			  (push (file-relative-name (cdr (car source))
-						    (expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
-				files)
-			  (pop source)))
-		    (message "There is no file written date in front matter")))))
-	 (while files
-	   (unless (or (string= (car files) ".")
-		       (string= (car files) "..")
-		       (not (member (file-name-extension (car files)) org-easy-blog--formats)))
-	     (push
-	      (concat
-	       (format-time-string "%Y-%m-%d %H:%M:%S "
-				   (nth 5 (file-attributes
-					   (expand-file-name
-					    (car files)
-					    org-easy-blog-postdir))))
-	       (car files))
-	      lists))
-	   (pop files))
-	 (cond ((eq 1 org-easy-blog--sort-time-flg)
-		(setq lists (reverse (sort lists 'string<))))
-	       ((eq 2 org-easy-blog--sort-time-flg)
-		(setq lists (sort lists 'string<))))
-	 (while lists
-	   (insert (concat (car lists) "\n"))
-	   (pop lists))
-	 (goto-char org-easy-blog--cursor)
-	 (org-easy-blog-ignore-error
+				 (cond ((eq 1 org-easy-blog--sort-char-flg)
+								(setq files (reverse (sort files 'string<))))
+							 ((eq 2 org-easy-blog--sort-char-flg)
+								(setq files (sort files 'string<)))
+							 ((eq 1 org-easy-blog--sort-publishday-flg)
+								(let ((publist (org-easy-blog--publishday-alist)))
+									(if publist
+											(let ((source (sort publist
+																					(lambda (a b) (string> (car a) (car b))))))
+												(setq files nil)
+												(while source
+													(push (file-relative-name (cdr (car source))
+																										(expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
+																files)
+													(pop source)))
+										(message "There is no file written date in front matter"))))
+							 ((eq 2 org-easy-blog--sort-publishday-flg)
+								(let ((publist (org-easy-blog--publishday-alist)))
+									(if publist
+											(let ((source (reverse (sort publist
+																									 (lambda (a b) (string> (car a) (car b)))))))
+												(setq files nil)
+												(while source
+													(push (file-relative-name (cdr (car source))
+																										(expand-file-name org-easy-blog-postdir org-easy-blog-basedir))
+																files)
+													(pop source)))
+										(message "There is no file written date in front matter")))))
+				 (while files
+					 (unless (or (string= (car files) ".")
+											 (string= (car files) "..")
+											 (not (member (file-name-extension (car files)) org-easy-blog--formats)))
+						 (push
+							(concat
+							 (format-time-string "%Y-%m-%d %H:%M:%S "
+																	 (nth 5 (file-attributes
+																					 (expand-file-name
+																						(car files)
+																						org-easy-blog-postdir))))
+							 (car files))
+							lists))
+					 (pop files))
+				 (cond ((eq 1 org-easy-blog--sort-time-flg)
+								(setq lists (reverse (sort lists 'string<))))
+							 ((eq 2 org-easy-blog--sort-time-flg)
+								(setq lists (sort lists 'string<))))
+				 (while lists
+					 (insert (concat (car lists) "\n"))
+					 (pop lists))
+				 (goto-char org-easy-blog--cursor)
+				 (org-easy-blog-ignore-error
              (if org-easy-blog--refresh
-		 (progn
-	           (when (< (line-number-at-pos) org-easy-blog--unmovable-line)
-		     (goto-char (point-min))
-		     (forward-line (- org-easy-blog--unmovable-line 1)))
-	           (beginning-of-line)
-	           (forward-char org-easy-blog--forward-char))
-	       (forward-char org-easy-blog--forward-char)))
-	 (org-easy-blog-mode)
-	 (when org-easy-blog-emacspeak
-	   (org-easy-blog-emacspeak-filename)))))))
+								 (progn
+									 (when (< (line-number-at-pos) org-easy-blog--unmovable-line)
+										 (goto-char (point-min))
+										 (forward-line (- org-easy-blog--unmovable-line 1)))
+									 (beginning-of-line)
+									 (forward-char org-easy-blog--forward-char))
+							 (forward-char org-easy-blog--forward-char)))
+				 (org-easy-blog-mode)
+				 (when org-easy-blog-emacspeak
+					 (org-easy-blog-emacspeak-filename)))))))
 
 (provide 'org-easy-blog)
 ;;; org-easy-blog.el ends here

@@ -24,7 +24,11 @@ Call =M-x: org-easy-blog=
 (package! org-easy-blog
   :recipe (:host github :repo "DarkBuffalo/org-easy-blog"))
 #+end_src
-
+** STRAIGHT
+#+begin_src emacs-lisp
+(use-package org-easy-blog
+  :straight (:host github :repo "DarkBuffalo/org-easy-blog"))
+#+end_src
 * CONTRIBUTING
 
 1. Fork it (<https://github.com/DarkBuffalo/org-easy-blog/fork>)
