@@ -1,21 +1,28 @@
 ;;; org-easy-blog.el --- Write blog easy -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2021 Matthias David
-;;
-;; Author: Matthias David <https://github.com/DarkBuffalo>
-;; Maintainer: Matthias David <darkbuffalo@delta.re>
-;; Created: mars 26, 2021
-;; Modified: mars 26, 2021
-;; Version: 0.0.1
-;; Keywords: Symbol’s value as variable is void: finder-known-keywords
+
+;; Author: Matthias David <darkbuffalo@gnu.re>
+;; Keywords: comm, news
 ;; Homepage: https://github.com/DarkBuffalo/org-easy-blog
-;; Package-Requires: ((emacs "24.3"))
-;;
-;; This file is not part of GNU Emacs.
-;;
+;; Package-Requires: ((emacs "24.3") (org))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>
+
 ;;; Commentary:
 ;;
-;;  Write blog easy
+;;  Write blog easily with org
 ;;
 ;;; Code:
 
@@ -29,6 +36,16 @@
 (defcustom org-easy-blog-basedir nil
   "Directory where html source code is placed."
   :group 'org-easy-blog
+  :type 'string)
+
+(defcustom org-easy-blog-root nil
+  "Root directory of blog at your server."
+  :group 'org-easy-blog
+  :type 'string)
+
+(defcustom org-easy-blog-sshdomain nil
+  "Domain of blog at your ~/.ssh/config."
+  :group 'prg-easy-blog
   :type 'string)
 
 (defcustom org-easy-blog-postdir "content/posts"
@@ -58,6 +75,9 @@
 
 (defconst org-easy-blog--buffer-name "*org-easy-blog*"
   "Buffer name of `org-easy-blog'.")
+
+(defconst org-easy-blog--preview-buffer "*org-easy-blog Preview*"
+  "Org-easy-blog preview buffer name.")
 
 (defconst org-easy-blog--formats `("org"))
 
@@ -89,6 +109,10 @@
 
 (defvar org-easy-blog--draft-list nil
   "Draft list flg.")
+
+
+(defvar org-easy-blog--current-postdir 0
+  "Easy-hugo current postdir.")
 
 (defvar org-easy-blog--sort-char-flg nil
   "Sort char flg of `org-easy-blog'.")
@@ -136,13 +160,33 @@ CONDITION can also be a list of error conditions."
   :group 'org-easy-blog
   :type 'string)
 
+(defcustom org-easy-blog-image-directory "images"
+  "Image file directory under 'static' directory."
+  :group 'org-easy-blog
+  :type 'string)
+
+(defconst org-easy-blog--default-image-directory
+  "images"
+  "Default `org-easy-blog' image-directory.")
+
+
+(defvar org-easy-blog--current-blog 0
+  "Current blog number.")
+
+(defcustom org-easy-blog-bloglist nil
+  "Multiple blog setting."
+  :group 'org-easy-blog
+  :type 'string)
+
+
+
 (push `((org-easy-blog-basedir . ,org-easy-blog-basedir)
-	(org-easy-blog-url . ,org-easy-blog-url)
-	;;(org-easy-blog-root . ,org-easy-blog-root)
-	;;(org-easy-blog-sshdomain . ,org-easy-blog-sshdomain)
-	(org-easy-blog-postdir . ,org-easy-blog-postdir)
-	(org-easy-blog-sort-default-char . ,org-easy-blog-sort-default-char)
-	(org-easy-blog-default-ext . ,org-easy-blog-default-ext))
+				(org-easy-blog-url . ,org-easy-blog-url)
+				(org-easy-blog-root . ,org-easy-blog-root)
+				(org-easy-blog-sshdomain . ,org-easy-blog-sshdomain)
+				(org-easy-blog-postdir . ,org-easy-blog-postdir)
+				(org-easy-blog-sort-default-char . ,org-easy-blog-sort-default-char)
+				(org-easy-blog-default-ext . ,org-easy-blog-default-ext))
       org-easy-blog-bloglist)
 
 ;; SERVE
@@ -153,42 +197,38 @@ CONDITION can also be a list of error conditions."
   "3000"
   "Port to serve local blog instance.")
 
-;;;###autoload
-(defun org-easy-blog-preview ()
-  "Preview at localhost."
-  (interactive)
-  (let ((default-directory (expand-file-name org-easy-blog-basedir)))	;;change to public dir 
-    (setq org-easy-blog--server-process
-          (start-process "org-easy-blog--server-process" nil "python" "-m" "http.server" (format "%s" org-easy-blog--local-port)))
-    (browse-url (format "http://localhost:%s" org-easy-blog--local-port))))
 
-(defun org-easy-blog-preview-end ()
-  "Finish previewing hugo at localhost."
-  (unless (null org-easy-blog--server-process)
-    (delete-process org-easy-blog--server-process))
-  ;;(when (get-buffer easy-hugo--preview-buffer)
-  ;;  (kill-buffer easy-hugo--preview-buffer))
-  )
+;;;###autoload
+(defun org-easy-blog-rg ()
+  "Search for blog article with `counsel-rg' or `consult-ripgrep'."
+  (interactive)
+  (org-easy-blog-with-env
+   (let ((dir (expand-file-name org-easy-blog-postdir org-easy-blog-basedir)))
+     (if (require 'counsel nil t)
+         (counsel-rg nil dir)
+       (if (require 'consult nil t)
+           (consult-ripgrep dir nil)
+         (error "'counsel' or 'consult' is not installed"))))))
 
 
 (defcustom org-easy-blog-help
   (if (null org-easy-blog-sort-default-char)
       (progn
-	"n .. New blog post    R .. Rename file    D .. Draft list
-p .. Preview          g .. Refresh       u .. Sort publishday
-v .. Open view-mode   s .. Sort time     T .. Publish timer    N .. No help-mode
-d .. Delete post      c .. Open config   W .. AWS S3 timer     f .. Select filename
-P .. Publish clever   C .. Deploy GCS    a .. Search with ag   H .. GitHub timer
-< .. Previous blog    > .. Next blog     , .. Pre postdir      . .. Next postdir
+				"n .. New blog post    R .. Rename file      D .. Draft list
+p .. Preview          g .. Refresh          u .. Sort publishday
+v .. Open view-mode   s .. Sort time        T .. Publish timer     N .. No help-mode
+d .. Delete post      f .. Select filename
+P .. Publish clever   a .. Search with rg
+< .. Previous blog    > .. Next blog        , .. Pre postdir       . .. Next postdir
 / .. Select postdir   q .. Quit easy-blog
 ")
     (progn
-      "n .. New blog post    R .. Rename file    D .. Draft list
-p .. Preview          g .. Refresh       u .. Sort publishday
-v .. Open view-mode   s .. Sort char     T .. Publish timer    N .. No help-mode
-d .. Delete post      c .. Open config   ; .. Select blog      f .. Select filename
-P .. Publish clever   C .. Deploy GCS    a .. Search with ag   H .. GitHub timer
-< .. Previous blog    > .. Next blog     , .. Pre postdir      . .. Next postdir
+      "n .. New blog post    R .. Rename file      D .. Draft list
+p .. Preview          g .. Refresh          u .. Sort publishday
+v .. Open view-mode   s .. Sort char        T .. Publish timer     N .. No help-mode
+d .. Delete post      ; .. Select blog      f .. Select filename
+P .. Publish clever   a .. Search with rg
+< .. Previous blog    > .. Next blog        , .. Pre postdir       . .. Next postdir
 / .. Select postdir   q .. Quit easy-blog
 "))
   "Help of `org-easy-blog'."
@@ -199,7 +239,7 @@ P .. Publish clever   C .. Deploy GCS    a .. Search with ag   H .. GitHub timer
 (defconst org-easy-blog--first-help
   "Welcome to org-easy-blog
 Let's post an article first.
-Press n on this screen or M-x easy-hugo-newpost.
+Press n on this screen or M-x org-easy-blog-newpost.
 Enter a article file name in the minibuffer.
 Then M-x easy-hugo again or refresh the screen with r or g key in this buffer,
 article which you wrote should appear here.
@@ -210,20 +250,20 @@ Enjoy!
 (defcustom org-easy-blog-add-help
   (if (null org-easy-blog-sort-default-char)
       (progn
-	"O .. Open basedir     r .. Refresh       b .. X github timer   t .. X publish-timer
+	"O .. Open basedir     r .. Refresh       t .. X publish-timer
 k .. Previous-line    j .. Next line     h .. backward-char    l .. forward-char
-m .. X s3-timer       i .. X GCS timer   I .. GCS timer        V .. View other window
+V .. View other window
 - .. Pre postdir      + .. Next postdir  w .. Write post       o .. Open other window
-J .. Jump blog        e .. Edit file     B .. Firebase deploy  ! .. X firebase timer
-L .. Firebase timer   S .. Sort char     M .. Magit status     ? .. Describe-mode
+J .. Jump blog        e .. Edit file
+S .. Sort char     M .. Magit status     ? .. Describe-mode
 ")
     (progn
-      "O .. Open basedir     r .. Refresh       b .. X github timer   t .. X publish-timer
+      "O .. Open basedir     r .. Refresh       t .. X publish-timer
 k .. Previous-line    j .. Next line     h .. backward-char    l .. forward-char
-m .. X s3-timer       i .. X GCS timer   I .. GCS timer        V .. View other window
+V .. View other window
 - .. Pre postdir      + .. Next postdir  w .. Write post       o .. Open other window
-J .. Jump blog        e .. Edit file     B .. Firebase deploy  ! .. X firebase timer
-L .. Firebase timer   S .. Sort time     M .. Magit status     ? .. Describe-mode
+J .. Jump blog        e .. Edit file 
+S .. Sort time     M .. Magit status     ? .. Describe-mode
 "))
   "Add help of `org-easy-blog'."
   :group 'org-easy-blog
@@ -236,9 +276,165 @@ L .. Firebase timer   S .. Sort time     M .. Magit status     ? .. Describe-mod
     (define-key map [backtab] 'org-easy-blog-no-help)
     (define-key map "r" 'easy-hugo-refresh)
     (define-key map "p" 'org-easy-blog-preview)
-
+    (define-key map "<" 'org-easy-blog-previous-blog)
+    (define-key map ">" 'org-easy-blog-next-blog)
+		(define-key map "a" 'easy-hugo-rg)
     map)
   "Keymap for `org-easy-blog' major mode.")
+
+
+
+;;;###autoload
+(defun org-easy-blog-preview ()
+  "Preview at localhost."
+  (interactive)
+  (let ((default-directory (concat org-easy-blog-basedir org-easy-blog-postdir)))	;;change to public dir
+    (setq org-easy-blog--server-process
+          (start-process "org-easy-blog--server-process" nil "python" "-m" "http.server" (format "%s" org-easy-blog--local-port)))
+    (browse-url (format "http://localhost:%s" org-easy-blog--local-port))))
+
+(defun org-easy-blog-preview-end ()
+  "Finish previewing at localhost."
+  (unless (null org-easy-blog--server-process)
+    (delete-process org-easy-blog--server-process))
+  (when (get-buffer org-easy-blog--preview-buffer)
+		(kill-buffer org-easy-blog--preview-buffer)))
+
+
+
+
+(defmacro org-easy-blog-set-bloglist (body)
+  "Macros to set variables to `easy-hugo-bloglist' as BODY."
+  `(setq ,body
+	 (cdr (assoc ',body
+		     (nth org-easy-blog--current-blog org-easy-blog-bloglist)))))
+
+(defmacro org-easy-blog-eval-bloglist (body)
+  "Macros to eval variables of BODY from `easy-hugo-bloglist'."
+  `(cdr (assoc ',body
+	       (nth org-easy-blog--current-blog org-easy-blog-bloglist))))
+
+(defmacro org-easy-blog-nth-eval-bloglist (body blog)
+  "Macros to eval variables of BODY from `easy-hugo-bloglist' at BLOG."
+  `(cdr (assoc ',body
+	       (nth ,blog org-easy-blog-bloglist))))
+
+
+
+(defun org-easy-blog-next-blog ()
+  "Go to next blog."
+  (interactive)
+  (when (< 1 (length org-easy-blog-bloglist))
+    (if (eq (- (length org-easy-blog-bloglist) 1) org-easy-blog--current-blog)
+				(setq org-easy-blog--current-blog 0)
+      (setq org-easy-blog--current-blog (+ org-easy-blog--current-blog 1)))
+    (setq org-easy-blog--current-postdir 0)
+    (org-easy-blog-set-bloglist org-easy-blog-basedir)
+    (org-easy-blog-set-bloglist org-easy-blog-url)
+    (org-easy-blog-set-bloglist org-easy-blog-root)
+    (org-easy-blog-set-bloglist org-easy-blog-sshdomain)
+
+    (if (org-easy-blog-eval-bloglist easy-hugo-image-directory)
+				(easy-hugo-set-bloglist easy-hugo-image-directory)
+      (setq org-easy-blog-image-directory org-easy-blog--default-image-directory))
+
+		(if (org-easy-blog-eval-bloglist easy-hugo-default-picture-directory)
+				(easy-hugo-set-bloglist easy-hugo-default-picture-directory)
+      (setq easy-hugo-default-picture-directory easy-hugo--default-picture-directory))
+    (if (org-easy-blog-eval-bloglist easy-hugo-preview-url)
+				(easy-hugo-set-bloglist easy-hugo-preview-url)
+      (setq easy-hugo-preview-url easy-hugo--default-preview-url))
+    (if (org-easy-blog-eval-bloglist easy-hugo-publish-chmod)
+				(easy-hugo-set-bloglist easy-hugo-publish-chmod)
+      (setq easy-hugo-publish-chmod easy-hugo--default-publish-chmod))
+    (if (org-easy-blog-eval-bloglist easy-hugo-previewtime)
+				(easy-hugo-set-bloglist easy-hugo-previewtime)
+      (setq easy-hugo-previewtime easy-hugo--default-previewtime))
+    (if (org-easy-blog-eval-bloglist easy-hugo-sort-default-char)
+				(easy-hugo-set-bloglist easy-hugo-sort-default-char)
+      (setq easy-hugo-sort-default-char easy-hugo--default-sort-default-char))
+    (if (org-easy-blog-eval-bloglist easy-hugo-asciidoc-extension)
+				(easy-hugo-set-bloglist easy-hugo-asciidoc-extension)
+      (setq easy-hugo-asciidoc-extension easy-hugo--default-asciidoc-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-html-extension)
+				(easy-hugo-set-bloglist easy-hugo-html-extension)
+      (setq easy-hugo-html-extension easy-hugo--default-html-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-markdown-extension)
+				(easy-hugo-set-bloglist easy-hugo-markdown-extension)
+      (setq easy-hugo-markdown-extension easy-hugo-markdown-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-default-ext)
+				(easy-hugo-set-bloglist easy-hugo-default-ext)
+      (setq easy-hugo-default-ext easy-hugo--default-ext))
+    (if (org-easy-blog-eval-bloglist easy-hugo-postdir)
+				(easy-hugo-set-bloglist easy-hugo-postdir)
+      (setq easy-hugo-postdir easy-hugo--default-postdir))
+    (org-easy-blog-preview-end)
+    (easy-hugo)))
+
+(defun org-easy-blog-previous-blog ()
+  "Go to previous blog."
+  (interactive)
+  (when (< 1 (length org-easy-blog-bloglist))
+    (if (= 0 org-easy-blog--current-blog)
+	(setq org-easy-blog--current-blog (- (length org-easy-blog-bloglist) 1))
+      (setq org-easy-blog--current-blog (- org-easy-blog--current-blog 1)))
+    (setq org-easy-blog--current-postdir 0)
+    (easy-hugo-set-bloglist org-easy-blog-basedir)
+    (easy-hugo-set-bloglist org-easy-blog-url)
+    (easy-hugo-set-bloglist org-easy-blog-root)
+    (easy-hugo-set-bloglist org-easy-blog-sshdomain)
+
+    (if (org-easy-blog-eval-bloglist easy-hugo-github-deploy-script)
+	(easy-hugo-set-bloglist easy-hugo-github-deploy-script)
+      (setq easy-hugo-github-deploy-script easy-hugo--default-github-deploy-script))
+    (if (org-easy-blog-eval-bloglist org-easy-blog-image-directory)
+	(easy-hugo-set-bloglist org-easy-blog-image-directory)
+      (setq org-easy-blog-image-directory org-easy-blog--default-image-directory))
+    (if (org-easy-blog-eval-bloglist easy-hugo-default-picture-directory)
+	(easy-hugo-set-bloglist easy-hugo-default-picture-directory)
+      (setq easy-hugo-default-picture-directory easy-hugo--default-picture-directory))
+    (if (org-easy-blog-eval-bloglist easy-hugo-preview-url)
+	(easy-hugo-set-bloglist easy-hugo-preview-url)
+      (setq easy-hugo-preview-url easy-hugo--default-preview-url))
+    (if (org-easy-blog-eval-bloglist easy-hugo-publish-chmod)
+	(easy-hugo-set-bloglist easy-hugo-publish-chmod)
+      (setq easy-hugo-publish-chmod easy-hugo--default-publish-chmod))
+    (if (org-easy-blog-eval-bloglist easy-hugo-previewtime)
+	(easy-hugo-set-bloglist easy-hugo-previewtime)
+      (setq easy-hugo-previewtime easy-hugo--default-previewtime))
+    (if (org-easy-blog-eval-bloglist easy-hugo-sort-default-char)
+	(easy-hugo-set-bloglist easy-hugo-sort-default-char)
+      (setq easy-hugo-sort-default-char easy-hugo--default-sort-default-char))
+    (if (org-easy-blog-eval-bloglist easy-hugo-asciidoc-extension)
+	(easy-hugo-set-bloglist easy-hugo-asciidoc-extension)
+      (setq easy-hugo-asciidoc-extension easy-hugo--default-asciidoc-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-html-extension)
+	(easy-hugo-set-bloglist easy-hugo-html-extension)
+      (setq easy-hugo-html-extension easy-hugo--default-html-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-markdown-extension)
+	(easy-hugo-set-bloglist easy-hugo-markdown-extension)
+      (setq easy-hugo-markdown-extension easy-hugo-markdown-extension))
+    (if (org-easy-blog-eval-bloglist easy-hugo-default-ext)
+	(easy-hugo-set-bloglist easy-hugo-default-ext)
+      (setq easy-hugo-default-ext easy-hugo--default-ext))
+    (if (org-easy-blog-eval-bloglist easy-hugo-postdir)
+	(easy-hugo-set-bloglist easy-hugo-postdir)
+      (setq easy-hugo-postdir easy-hugo--default-postdir))
+    (easy-hugo--preview-end)
+    (easy-hugo)))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (defun org-easy-blog-quit ()
   "Quit easy blog."
@@ -340,16 +536,48 @@ L .. Firebase timer   S .. Sort time     M .. Magit status     ? .. Describe-mod
      "\n#+DESCRIPTION: Short description"
      "\n\n")))
 
+
+;;;###autoload
+(defun easy-hugo-put-image ()
+  "Move image to image directory and generate image link."
+  (interactive
+   (org-easy-blog-with-env
+    (unless (file-directory-p (expand-file-name
+                               org-easy-blog-image-directory
+                               (expand-file-name "static" org-easy-blog-basedir)))
+      (error "%s does not exist" (expand-file-name
+                                  org-easy-blog-image-directory
+                                  (expand-file-name "static" org-easy-blog-basedir))))
+    (let ((insert-default-directory nil))
+      (let* ((file (read-file-name "Image file: " nil
+				   (expand-file-name org-easy-blog-default-picture-directory)
+				   t
+				   (expand-file-name org-easy-blog-default-picture-directory)))
+	     (putfile (expand-file-name
+		       (file-name-nondirectory file)
+		       (expand-file-name org-easy-blog-image-directory "static"))))
+	(when (file-exists-p putfile)
+	  (error "%s already exists!" putfile))
+	(copy-file file putfile)
+	(insert (concat (format "{{< figure src=\"%s%s\""
+				easy-hugo-url
+				(concat
+				 "/"
+				 org-easy-blog-image-directory
+				 "/"
+				 (file-name-nondirectory file)))
+			" alt=\"\" >}}")))))))
+
 ;;;###autoload
 (defun org-easy-blog-newpost (post-file)
   "Create a new post with hugo.
 POST-FILE needs to have and extension  '.org'."
   (interactive (list (read-from-minibuffer
-		      "Filename: "
-		      `(,org-easy-blog-default-ext . 1) nil nil nil)))
+											"Filename: "
+											`(,org-easy-blog-default-ext . 1) nil nil nil)))
   (org-easy-blog-with-env
    (let ((filename (expand-file-name post-file org-easy-blog-postdir))
-	 (file-ext (file-name-extension post-file)))
+				 (file-ext (file-name-extension post-file)))
      (when (not (member file-ext org-easy-blog--formats))
        (error "Please enter .org file name"))
      (when (file-exists-p (file-truename filename))
@@ -469,6 +697,52 @@ POST-FILE needs to have and extension  '.org'."
 				 (org-easy-blog-mode)
 				 (when org-easy-blog-emacspeak
 					 (org-easy-blog-emacspeak-filename)))))))
+
+
+
+
+
+
+
+
+
+;;;###autoload
+(defun easy-hugo-publish-clever ()
+  "Clever publish command.
+Automatically select the deployment destination from init.el."
+  (interactive)
+  (org-easy-blog-with-env
+   (cond ((org-easy-blog-eval-bloglist org-easy-blog-root)
+					(org-easy-blog-publish))
+				 (t (error "Nothing is found to publish at %s" org-easy-blog-basedir)))))
+
+;;;###autoload
+(defun easy-hugo-publish ()
+  "Adapt local change to the server with hugo."
+  (interactive)
+  (unless org-easy-blog-sshdomain
+    (error "Please set org-easy-blog-sshdomain variable"))
+  (unless easy-hugo-root
+    (error "Please set org-easy-blog-root variable"))
+  (unless (file-exists-p "~/.ssh/config")
+    (error "There is no ~/.ssh/config"))
+  (org-easy-blog-with-env
+   (when (file-directory-p "public")
+     (delete-directory "public" t nil))
+
+	 (let ((ret (call-process easy-hugo-bin nil "*hugo-publish*" t "--destination" "public")))
+     (unless (zerop ret)
+       (switch-to-buffer (get-buffer "*hugo-publish*"))
+       (error "'hugo --destination public' command does not end normally")))
+
+	 (when (get-buffer "*hugo-publish*")
+     (kill-buffer "*hugo-publish*"))
+	 
+
+   (message "Blog published")
+   (when easy-hugo-url
+     (browse-url easy-hugo-url))))
+
 
 (provide 'org-easy-blog)
 ;;; org-easy-blog.el ends here
