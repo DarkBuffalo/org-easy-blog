@@ -278,7 +278,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
     (define-key map "p" 'org-easy-blog-preview)
     (define-key map "<" 'org-easy-blog-previous-blog)
     (define-key map ">" 'org-easy-blog-next-blog)
-		(define-key map "a" 'easy-hugo-rg)
+		(define-key map "a" 'org-easy-blog-rg)
     map)
   "Keymap for `org-easy-blog' major mode.")
 
