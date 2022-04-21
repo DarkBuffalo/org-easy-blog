@@ -77,3 +77,17 @@ link. INFO is a plist holding contextual information."
 
 #+RESULTS:
 | posts | about | notes | css | images | assets | rss | delta |
+
+
+* alist-get
+
+#+begin_src emacs-lisp
+(setf
+ (alist-get "zenn" org-publish-project-alist nil nil #'string=)
+ (list
+  :base-directory (expand-file-name "" zenn/org-dir)
+  :base-extension "org"
+  :publishing-directory (expand-file-name "../" zenn/org-dir)
+  :recursive t
+  :publishing-function 'org-zenn-publish-to-markdown))
+#+end_src

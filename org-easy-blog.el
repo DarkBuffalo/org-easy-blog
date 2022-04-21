@@ -290,33 +290,29 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 
 
 
-(setq org-publish-project-alist
-      `(("oeb-posts"
-         :base-directory ,(expand-file-name (concat org-easy-blog-basedir org-easy-blog-postdir))
-         :base-extension "org"
-         :recursive t
-         :publishing-function (org-html-publish-to-html
-															 org-org-publish-to-org)
-         :publishing-directory ,(expand-file-name (concat org-easy-blog-basedir "www"))	;; local dir
-         :exclude ,(regexp-opt '("README.org" "rss.org" "index.org" ))
-         :exclude-tags ("draft" "noexport")
-         :auto-sitemap t
-         :sitemap-filename "index.org"
-         :sitemap-title "Blog"
-         :sitemap-style list ;;tree
-         :sitemap-sort-files anti-chronologically
-         :with-latex t
-         :with-drawers t
-         :export-with-tags t
-         :section-numbers nil
-         :html-doctpe "html5"
-         :html-html5-fancy t
-         :html-head-include-scripts t
-         :html-head-include-default-style nil)
-				("oeb-blog" :components ("oeb-posts") )))
-
-
-
+(setf (alist-get "oeb-posts" org-publish-project-alist nil nil #'string=)
+			(list
+			 :base-directory (expand-file-name (concat org-easy-blog-basedir org-easy-blog-postdir))
+			 :base-extension "org"
+			 :recursive t
+			 :publishing-function (list 'org-html-publish-to-html 'org-org-publish-to-org)
+			 :publishing-directory (expand-file-name (concat org-easy-blog-basedir "www")) ;; local dir
+			 :exclude (regexp-opt '("README.org" "rss.org" "index.org" ))
+			 :exclude-tags (list "draft" "noexport")
+			 :auto-sitemap t
+			 :sitemap-filename "index.org"
+			 :sitemap-title "Blog"
+			 :sitemap-style 'list ;;tree
+			 :sitemap-sort-files 'anti-chronologically
+			 :with-latex t
+			 :with-drawers t
+			 :export-with-tags t
+			 :section-numbers nil
+			 :html-doctpe "html5"
+			 :html-html5-fancy t
+			 :html-head-include-scripts t
+			 :html-head-include-default-style nil
+			'("oeb-blog" :components ("oeb-posts"))))
 
 (defun org-easy-blog-open ()
   "Open the file on the pointer."
