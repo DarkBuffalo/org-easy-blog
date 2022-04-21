@@ -9,6 +9,10 @@ Call =M-x: org-easy-blog=
 #+attr_latex: :width 300px
 [[file:img/accueil.png]]
 
+#+caption: Beta test
+#+attr_latex: :width 300px
+[[file:img/beta.gif]]
+
 
 * TASKS [2/7] [28%]
 - [X] Search with rg
@@ -18,7 +22,8 @@ Call =M-x: org-easy-blog=
 - [-] Serv on local
 - [X] Preview locally
 - [ ] Publish
-  
+
+
 * INSTALLATION
 
 ** DOOM

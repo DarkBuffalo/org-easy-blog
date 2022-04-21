@@ -279,7 +279,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
     (define-key map "n" 'org-easy-blog-newpost)
     (define-key map "q" 'org-easy-blog-quit)
     (define-key map [backtab] 'org-easy-blog-no-help)
-    (define-key map "r" 'easy-hugo-refresh)
+    (define-key map "r" 'org-easy-blog-refresh)
     (define-key map "p" 'org-easy-blog-preview)
     (define-key map "<" 'org-easy-blog-previous-blog)
     (define-key map ">" 'org-easy-blog-next-blog)
@@ -333,6 +333,17 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 										(not (file-directory-p file)))
 					 (find-file file)))))))
 
+
+
+(defun org-easy-blog-refresh ()
+  "Refresh org-easy-blog-mode."
+  (interactive)
+  (setq org-easy-blog--cursor (point))
+  (setq org-easy-blog--refresh 1)
+  ;; (if org-easy-blog--draft-list
+  ;;     (org-easy-blog-draft-list)
+  ;;   (easy-hugo))
+  (setq easy-hugo--refresh nil))
 
 
 ;;;###autoload
