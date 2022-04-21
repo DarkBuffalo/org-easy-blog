@@ -291,13 +291,13 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 
 
 (setq org-publish-project-alist
-      `(("mesposts"
+      `(("oeb-posts"
          :base-directory ,(expand-file-name (concat org-easy-blog-basedir org-easy-blog-postdir))
          :base-extension "org"
          :recursive t
          :publishing-function (org-html-publish-to-html
 															 org-org-publish-to-org)
-         :publishing-directory ,(expand-file-name (concat org-easy-blog-basedir "www"));; local dir
+         :publishing-directory ,(expand-file-name (concat org-easy-blog-basedir "www"))	;; local dir
          :exclude ,(regexp-opt '("README.org" "rss.org" "index.org" ))
          :exclude-tags ("draft" "noexport")
          :auto-sitemap t
@@ -312,7 +312,8 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
          :html-doctpe "html5"
          :html-html5-fancy t
          :html-head-include-scripts t
-         :html-head-include-default-style nil)))
+         :html-head-include-default-style nil)
+				("oeb-blog" :components ("oeb-posts") )))
 
 
 
@@ -339,7 +340,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
   "Preview at localhost."
   (interactive)
 	(org-easy-blog-with-env
-	 (org-publish "mesposts" t)
+	 (org-publish "oeb-blog" t)
    (let ((www-dir (concat org-easy-blog-basedir "www"))) ;;change to public dir
 		 ;; (make-directory www-dir :parents)
 		 (setq httpd-root www-dir)
