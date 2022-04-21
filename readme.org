@@ -10,14 +10,15 @@ Call =M-x: org-easy-blog=
 [[file:img/accueil.png]]
 
 
-* TASKS [1/6] [16%]
+* TASKS [2/7] [28%]
 - [X] Search with rg
 - [ ] Draft
-- [ ] New article with template
+- [-] New article with template
 - [ ] Manage many blog
-- [ ] Search with ag
 - [-] Serv on local
-
+- [X] Preview locally
+- [ ] Publish
+  
 * INSTALLATION
 
 ** DOOM
