@@ -14,7 +14,7 @@ Call =M-x: org-easy-blog=
 [[file:img/beta.gif]]
 
 
-* TASKS [3/8] [37%]
+* TASKS [4/10] [40%]
 
 - [ ] Draft
 - [ ] Manage many blog
@@ -22,6 +22,7 @@ Call =M-x: org-easy-blog=
 - [ ] Image importer or [[https://thibaultmarin.github.io/blog/posts/2016-11-13-Personal_website_in_org.html#el-push-to-blog][push-to-blog system]]
 - [-] New article with template
 - [-] Serv on local
+- [X] edit and delete file
 - [X] Add to 'org-publish-project-alist'
 - [X] Preview locally
 - [X] Search with rg
