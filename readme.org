@@ -14,15 +14,17 @@ Call =M-x: org-easy-blog=
 [[file:img/beta.gif]]
 
 
-* TASKS [2/7] [28%]
-- [X] Search with rg
-- [ ] Draft
-- [-] New article with template
-- [ ] Manage many blog
-- [-] Serv on local
-- [X] Preview locally
-- [ ] Publish
+* TASKS [3/8] [37%]
 
+- [ ] Draft
+- [ ] Manage many blog
+- [ ] Publish
+- [ ] Image importer or [[https://thibaultmarin.github.io/blog/posts/2016-11-13-Personal_website_in_org.html#el-push-to-blog][push-to-blog system]]
+- [-] New article with template
+- [-] Serv on local
+- [X] Add to 'org-publish-project-alist'
+- [X] Preview locally
+- [X] Search with rg
 
 * INSTALLATION
 
@@ -34,8 +36,16 @@ Call =M-x: org-easy-blog=
 ** STRAIGHT
 #+begin_src emacs-lisp
 (use-package org-easy-blog
-  :straight (:host github :repo "DarkBuffalo/org-easy-blog"))
+  :straight (:host github :repo "DarkBuffalo/org-easy-blog")
+		:init
+	;; Main blog
+	(setq org-easy-blog-url "https://yourblogdomain")
+	(setq org-easy-blog-sshdomain "blogdomain")
+	(setq org-easy-blog-root "/home/blog/")
+	(setq org-easy-blog-basedir "~/Dropbox/00_SLIPBOX/site/test-oeb/"))
 #+end_src
+
+
 * CONTRIBUTING
 
 1. Fork it (<https://github.com/DarkBuffalo/org-easy-blog/fork>)

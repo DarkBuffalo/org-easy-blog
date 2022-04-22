@@ -21,6 +21,13 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 ;;; Commentary:
+;;          ______              __    _______        ___  ___       __
+;;         |   _  \ .---.-.----|  |--|   _   .--.--.'  _.'  _.---.-|  .-----.
+;;^_/-...-\_^  |   \|  _  |   _|    <|.  1   |  |  |   _|   _|  _  |  |  _  |
+;;\__/> o\__/  |    |___._|__| |__|__|.  _   |_____|__| |__| |___._|__|_____|
+;;   \   / |:  1    /                |:  1    \
+;;   (^_^) |::.. . /                 |::.. .  /
+;;         `------'                  `-------'
 ;;
 ;;  Write blog easily with org
 ;;
@@ -72,6 +79,11 @@
   :group 'org-easy-blog
   :type 'integer)
 
+(defcustom org-easy-blog-add-help-line 6
+  "Number of lines of `org-easy-blog-add-help'."
+  :group 'org-easy-blog
+  :type 'integer)
+
 (defcustom org-easy-blog-additional-help nil
   "Additional help flg of `org-easy-blog'."
   :group 'org-easy-blog
@@ -108,6 +120,10 @@
 (defvar org-easy-blog--cursor nil
   "Cursor of `org-easy-blog'.")
 
+(defvar org-easy-blog--line nil
+  "Line of `org-easy-blog'.")
+
+
 (defvar org-easy-blog--refresh nil
   "Refresh flg of `org-easy-blog'.")
 
@@ -117,6 +133,12 @@
 
 (defvar org-easy-blog--current-postdir 0
   "Easy-hugo current postdir.")
+
+
+
+
+(defconst org-easy-blog--unmovable-line-default (+ org-easy-blog-help-line 4)
+  "Default value of impossible to move below this line.")
 
 (defvar org-easy-blog--sort-char-flg nil
   "Sort char flg of `org-easy-blog'.")
@@ -219,7 +241,7 @@ CONDITION can also be a list of error conditions."
 (defcustom org-easy-blog-help
   (if (null org-easy-blog-sort-default-char)
       (progn
-				"n .. New blog post    e .. Edit file    R .. Rename file      D .. Draft list
+				"n .. New blog post    e .. Edit file        R .. Rename file       D .. Draft list
 p .. Preview          g .. Refresh          u .. Sort publishday
 v .. Open view-mode   s .. Sort time        T .. Publish timer     N .. No help-mode
 d .. Delete post      f .. Select filename
@@ -228,7 +250,7 @@ P .. Publish clever   a .. Search with rg
 / .. Select postdir   q .. Quit easy-blog
 ")
     (progn
-      "n .. New blog post    e .. Edit file     R .. Rename file      D .. Draft list
+      "n .. New blog post    e .. Edit file         R .. Rename file       D .. Draft list
 p .. Preview          g .. Refresh          u .. Sort publishday
 v .. Open view-mode   s .. Sort char        T .. Publish timer     N .. No help-mode
 d .. Delete post      ; .. Select blog      f .. Select filename
@@ -246,7 +268,7 @@ P .. Publish clever   a .. Search with rg
 Let's post an article first.
 Press n on this screen or M-x org-easy-blog-newpost.
 Enter a article file name in the minibuffer.
-Then M-x easy-hugo again or refresh the screen with r or g key in this buffer,
+Then M-x org-easy-blog again or refresh the screen with r or g key in this buffer,
 article which you wrote should appear here.
 Enjoy!
 "
@@ -278,13 +300,16 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
   (let ((map (make-keymap)))
     (define-key map "n" 'org-easy-blog-newpost)
     (define-key map "q" 'org-easy-blog-quit)
+		(define-key map [tab] 'org-easy-blog-full-help)
     (define-key map [backtab] 'org-easy-blog-no-help)
     (define-key map "r" 'org-easy-blog-refresh)
-    (define-key map "p" 'org-easy-blog-preview)
+		(define-key map "d" 'org-easy-blog-delete)
+		(define-key map "p" 'org-easy-blog-preview)
     (define-key map "<" 'org-easy-blog-previous-blog)
     (define-key map ">" 'org-easy-blog-next-blog)
 		(define-key map "a" 'org-easy-blog-rg)
 		(define-key map "e" 'org-easy-blog-open)
+		(define-key map "\C-m" 'org-easy-blog-open)
     map)
   "Keymap for `org-easy-blog' major mode.")
 
@@ -318,8 +343,10 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
   "Open the file on the pointer."
   (interactive)
   (when (equal (buffer-name (current-buffer)) org-easy-blog--buffer-name)
+		(message "fuck1")
     (org-easy-blog-with-env
-     (unless (or (string-match "^$" (thing-at-point 'line))
+     (unless (or (string-match "^
+$" (thing-at-point 'line))
 								 (eq (point) (point-max))
 								 (> (+ 1 org-easy-blog--forward-char) (length (thing-at-point 'line))))
        (let ((file (expand-file-name
@@ -330,16 +357,42 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 					 (find-file file)))))))
 
 
+(defun org-easy-blog-delete ()
+  "Delete the file on the pointer."
+  (interactive)
+  (when (equal (buffer-name (current-buffer)) org-easy-blog--buffer-name)
+    (org-easy-blog-with-env
+     (unless (or (string-match "^
+$" (thing-at-point 'line))
+								 (eq (point) (point-max))
+								 (> (+ 1 org-easy-blog--forward-char) (length (thing-at-point 'line))))
+       (let ((file (expand-file-name
+										(substring (thing-at-point 'line) org-easy-blog--forward-char -1)
+										org-easy-blog-postdir)))
+				 (when (and (file-exists-p file)
+										(not (file-directory-p file)))
+					 (when (yes-or-no-p (concat "Delete " file))
+						 (if org-easy-blog-no-help
+								 (setq org-easy-blog--line (- (line-number-at-pos) 4))
+							 (setq org-easy-blog--line (- (line-number-at-pos) (+ org-easy-blog--unmovable-line 1))))
+						 (delete-file file)
+						 (if org-easy-blog--draft-list
+								 (org-easy-blog-draft-list)
+							 (org-easy-blog))
+						 (when (> org-easy-blog--line 0)
+							 (forward-line org-easy-blog--line)
+							 (forward-char org-easy-blog--forward-char)))))))))
+
 
 (defun org-easy-blog-refresh ()
   "Refresh org-easy-blog-mode."
   (interactive)
   (setq org-easy-blog--cursor (point))
   (setq org-easy-blog--refresh 1)
-  ;; (if org-easy-blog--draft-list
-  ;;     (org-easy-blog-draft-list)
-  ;;   (easy-hugo))
-  (setq easy-hugo--refresh nil))
+  (if org-easy-blog--draft-list
+      (org-easy-blog-draft-list)
+    (org-easy-blog))
+  (setq org-easy-blog--refresh nil))
 
 
 ;;;###autoload
@@ -372,21 +425,19 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 		(kill-buffer org-easy-blog--preview-buffer)))
 
 
-
-
 (defmacro org-easy-blog-set-bloglist (body)
-  "Macros to set variables to `easy-hugo-bloglist' as BODY."
+  "Macros to set variables to `org-easy-blog-bloglist' as BODY."
   `(setq ,body
 	 (cdr (assoc ',body
 		     (nth org-easy-blog--current-blog org-easy-blog-bloglist)))))
 
 (defmacro org-easy-blog-eval-bloglist (body)
-  "Macros to eval variables of BODY from `easy-hugo-bloglist'."
+  "Macros to eval variables of BODY from `org-easy-blog-bloglist'."
   `(cdr (assoc ',body
 	       (nth org-easy-blog--current-blog org-easy-blog-bloglist))))
 
 (defmacro org-easy-blog-nth-eval-bloglist (body blog)
-  "Macros to eval variables of BODY from `easy-hugo-bloglist' at BLOG."
+  "Macros to eval variables of BODY from `org-easy-blog-bloglist' at BLOG."
   `(cdr (assoc ',body
 	       (nth ,blog org-easy-blog-bloglist))))
 
@@ -440,7 +491,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 				(easy-hugo-set-bloglist easy-hugo-postdir)
       (setq easy-hugo-postdir easy-hugo--default-postdir))
     (org-easy-blog-preview-end)
-    (easy-hugo)))
+    (org-easy-blog)))
 
 (defun org-easy-blog-previous-blog ()
   "Go to previous blog."
@@ -512,6 +563,37 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
   (org-easy-blog-preview-end)
   (when (buffer-live-p org-easy-blog--mode-buffer)
     (kill-buffer org-easy-blog--mode-buffer)))
+
+
+(defun org-easy-blog-no-help ()
+  "No help easy hugo."
+  (interactive)
+  (if org-easy-blog-no-help
+      (progn
+	(setq org-easy-blog-no-help nil)
+	(setq org-easy-blog--unmovable-line org-easy-blog--unmovable-line-default))
+    (progn
+      (setq org-easy-blog-no-help 1)
+      (setq org-easy-blog-additional-help nil)
+      (setq org-easy-blog--unmovable-line 3)))
+  (if org-easy-blog--draft-list
+      (org-easy-blog-draft-list)
+    (org-easy-blog)))
+
+(defun org-easy-blog-full-help ()
+  "Full help mode of easy hugo."
+  (interactive)
+  (if org-easy-blog-additional-help
+      (progn
+	(setq org-easy-blog-additional-help nil)
+	(setq org-easy-blog--unmovable-line org-easy-blog--unmovable-line-default))
+    (progn
+      (setq org-easy-blog-additional-help 1)
+      (setq org-easy-blog-no-help nil)
+      (setq org-easy-blog--unmovable-line (+ org-easy-blog-help-line org-easy-blog-add-help-line 4))))
+  (if org-easy-blog--draft-list
+      (org-easy-blog-draft-list)
+    (org-easy-blog)))
 
 
 (define-derived-mode org-easy-blog-mode special-mode "org-easy-blog"
@@ -606,7 +688,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 
 
 ;;;###autoload
-(defun easy-hugo-put-image ()
+(defun org-easy-blog-put-image ()
   "Move image to image directory and generate image link."
   (interactive
    (org-easy-blog-with-env
@@ -628,7 +710,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 	  (error "%s already exists!" putfile))
 	(copy-file file putfile)
 	(insert (concat (format "{{< figure src=\"%s%s\""
-				easy-hugo-url
+				org-easy-blog-url
 				(concat
 				 "/"
 				 org-easy-blog-image-directory
@@ -638,7 +720,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 
 ;;;###autoload
 (defun org-easy-blog-newpost (post-file)
-  "Create a new post with hugo.
+  "Create a new post with org-easy-blog.
 POST-FILE needs to have and extension  '.org'."
   (interactive (list (read-from-minibuffer
 											"Filename: "
