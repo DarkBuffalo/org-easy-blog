@@ -42,7 +42,6 @@
 
 - https://github.com/masasam/emacs-easy-hugo
 
-
 * Youtube
 
 #+begin_src html
@@ -75,10 +74,6 @@ link. INFO is a plist holding contextual information."
 (print (mapcar 'car org-publish-project-alist) )
 #+end_src
 
-#+RESULTS:
-| posts | about | notes | css | images | assets | rss | delta |
-
-
 * alist-get
 
 #+begin_src emacs-lisp
@@ -91,3 +86,8 @@ link. INFO is a plist holding contextual information."
   :recursive t
   :publishing-function 'org-zenn-publish-to-markdown))
 #+end_src
+
+
+* make dir
+- https://www.iqbalansari.me/blog/2014/12/07/automatically-create-parent-directories-on-visiting-a-new-file-in-emacs/
+  

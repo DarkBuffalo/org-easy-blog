@@ -314,7 +314,6 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
   "Keymap for `org-easy-blog' major mode.")
 
 
-
 (setf (alist-get "oeb-posts" org-publish-project-alist nil nil #'string=)
 			(list
 			 :base-directory (expand-file-name (concat org-easy-blog-basedir org-easy-blog-postdir))
@@ -336,14 +335,33 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 			 :html-doctpe "html5"
 			 :html-html5-fancy t
 			 :html-head-include-scripts t
-			 :html-head-include-default-style nil
-			'("oeb-blog" :components ("oeb-posts"))))
+			 :html-head-include-default-style nil))
+
+(setf (alist-get "oeb-css" org-publish-project-alist nil nil #'string=)
+			(list
+			 :base-directory (expand-file-name (concat org-easy-blog-basedir "content/css"))
+       :base-extension "css"
+			 :publishing-directory (expand-file-name (concat org-easy-blog-basedir "www/css"))
+       :publishing-function 'org-publish-attachment
+       :recursive t))
+
+(setf (alist-get "oeb-images" org-publish-project-alist nil nil #'string=)
+			(list
+			 :base-directory (expand-file-name (concat org-easy-blog-basedir "content/images"))
+       :base-extension 'site-attachments
+			 :publishing-directory (expand-file-name (concat org-easy-blog-basedir "www/images"))
+       :publishing-function 'org-publish-attachment
+       :recursive t))
+
+(setf (alist-get "oeb-blog" org-publish-project-alist nil nil #'string=)
+			(list :components (list "oeb-posts" "oeb-css" "oeb-images")))
+
+
 
 (defun org-easy-blog-open ()
   "Open the file on the pointer."
   (interactive)
   (when (equal (buffer-name (current-buffer)) org-easy-blog--buffer-name)
-		(message "fuck1")
     (org-easy-blog-with-env
      (unless (or (string-match "^
 $" (thing-at-point 'line))
@@ -402,18 +420,14 @@ $" (thing-at-point 'line))
 	(org-easy-blog-with-env
 	 (org-publish "oeb-blog" t)
    (let ((www-dir (concat org-easy-blog-basedir "www"))) ;;change to public dir
-		 ;; (make-directory www-dir :parents)
+		 (when (and (not (file-exists-p www-dir))
+								(y-or-n-p (format "Directory '%s' does not exist! Create it ?" www-dir)))
+			 (make-directory www-dir t))
 		 (setq httpd-root www-dir)
 		 (setq httpd-port org-easy-blog--local-port)
 		 (httpd-start)
 		 (browse-url (format "http://localhost:%d"
-												 org-easy-blog--local-port))
-		 
-     ;; (setq org-easy-blog--server-process
-     ;;       (start-process "org-easy-blog--server-process" nil "python" "-m" "http.server" (format "%s" org-easy-blog--local-port)))
-     ;; (browse-url (format "http://localhost:%s" org-easy-blog--local-port))
-		 
-		 )))
+												 org-easy-blog--local-port)))))
 
 (defun org-easy-blog-preview-end ()
   "Finish previewing at localhost."
