@@ -171,11 +171,6 @@ CONDITION can also be a list of error conditions."
   (declare (debug t) (indent 1))
   `(condition-case nil (progn ,@body) (,condition nil)))
 
-(defcustom org-easy-blog-emacspeak nil
-  "Emacspeak flg of `org-easy-blog'."
-  :group 'org-easy-blog
-  :type 'integer)
-
 (defcustom org-easy-blog-default-ext ".org"
   "Default extension when posting new articles."
   :group 'org-easy-blog
@@ -328,22 +323,18 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 			 :sitemap-title "Blog"
 			 :sitemap-style 'list ;;tree
 			 :sitemap-sort-files 'anti-chronologically
+			 :sitemap-format-entry 'org-easy-blog-format-blog-entry
 			 :with-latex t
 			 :with-drawers t
+			 :with-author nil
 			 :export-with-tags t
 			 :section-numbers nil
-			 :html-doctpe "html5"
-			 :html-html5-fancy t
-			 :html-head-include-scripts t
-			 :html-head-include-default-style nil))
-
-(setf (alist-get "oeb-css" org-publish-project-alist nil nil #'string=)
-			(list
-			 :base-directory (expand-file-name (concat org-easy-blog-basedir "content/css"))
-       :base-extension "css"
-			 :publishing-directory (expand-file-name (concat org-easy-blog-basedir "www/css"))
-       :publishing-function 'org-publish-attachment
-       :recursive t))
+			 ;;:html-doctype "html5"
+			 ;;:html-html5-fancy t
+			 :html-validation-link nil
+			 :html-head-include-scripts nil
+			 :html-head-include-default-style nil
+			 :html-head "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css\">"))
 
 (setf (alist-get "oeb-images" org-publish-project-alist nil nil #'string=)
 			(list
@@ -354,9 +345,7 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
        :recursive t))
 
 (setf (alist-get "oeb-blog" org-publish-project-alist nil nil #'string=)
-			(list :components (list "oeb-posts" "oeb-css" "oeb-images")))
-
-
+			(list :components (list "oeb-posts" "oeb-images")))
 
 (defun org-easy-blog-open ()
   "Open the file on the pointer."
@@ -373,6 +362,35 @@ $" (thing-at-point 'line))
 				 (when (and (file-exists-p file)
 										(not (file-directory-p file)))
 					 (find-file file)))))))
+
+
+
+
+(defun org-easy-blog-format-blog-entry (entry style project)
+  "Format notes with author and published data in the index page.
+ENTRY: file-name
+STYLE:
+PROJECT: `blog in this case."
+  (when (not (directory-name-p entry))
+    (concat
+     (format "[[file:%s][%s]]
+          #+begin_article-info
+          #+begin_date
+          %s
+          #+end_date
+          #+begin_tags
+          %s
+          #+end_tags
+          #+end_article-info
+          %s
+          "
+             entry
+             (org-publish-find-title entry project)
+             (concat "[" (format-time-string "%d/%m/%Y" (org-publish-find-date entry project)) "]")
+             (org-publish-find-property entry :filetags project 'html)
+             (org-publish-find-property entry :description project 'html)))))
+
+
 
 
 (defun org-easy-blog-delete ()
@@ -559,16 +577,6 @@ $" (thing-at-point 'line))
 
 
 
-
-
-
-
-
-
-
-
-
-
 (defun org-easy-blog-quit ()
   "Quit easy blog."
   (interactive)
@@ -622,17 +630,6 @@ $" (thing-at-point 'line))
     (or (= lastc ?/)
         (and (memq system-type '(windows-nt ms-dos))
              (= lastc ?\\)))))
-
-(defun org-easy-blog-emacspeak-filename ()
-  "Read filename with emacspeak."
-  (cl-declare (special emacspeak-speak-last-spoken-word-position))
-  (let ((filename (substring (thing-at-point 'line) org-easy-blog--forward-char -1))
-        (personality (dtk-get-style)))
-    (cond
-     (filename
-      (dtk-speak (propertize filename 'personality personality))
-      (setq emacspeak-speak-last-spoken-word-position (point)))
-     (t (emacspeak-speak-line)))))
 
 (defun org-easy-blog--directory-files (dir regexp)
   "Return list of all files under DIR that have file names matching REGEXP."
@@ -692,12 +689,12 @@ $" (thing-at-point 'line))
           (format-time-string "%Y-%m-%dT%T")
           (org-easy-blog--orgtime-format (format-time-string "%z")))))
     (concat
-     "#+TITLE: " file
-     "\n#+DATE: " datetimezone
-     "\n#+PUBLISHDATE: " datetimezone
-     "\n#+DRAFT: nil"
-     "\n#+TAGS: nil, nil"
-     "\n#+DESCRIPTION: Short description"
+     "#+title: " file
+     "\n#+date: " datetimezone
+     "\n#+publishdate: " datetimezone
+     "\n#+draft: nil"
+     "\n#+tags: nil, nil"
+     "\n#+description: Short description"
      "\n\n")))
 
 
@@ -858,9 +855,7 @@ POST-FILE needs to have and extension  '.org'."
 									 (beginning-of-line)
 									 (forward-char org-easy-blog--forward-char))
 							 (forward-char org-easy-blog--forward-char)))
-				 (org-easy-blog-mode)
-				 (when org-easy-blog-emacspeak
-					 (org-easy-blog-emacspeak-filename)))))))
+				 (org-easy-blog-mode))))))
 
 
 
