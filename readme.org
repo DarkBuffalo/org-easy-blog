@@ -18,14 +18,14 @@ Call =M-x: org-easy-blog=
 
 - [ ] Draft
 - [ ] Manage many blog
-- [ ] Publish to web
+- [ ] Publish
+- [ ] Org syntax
 - [ ] Image importer or [[https://thibaultmarin.github.io/blog/posts/2016-11-13-Personal_website_in_org.html#el-push-to-blog][push-to-blog system]]
-- [ ] Template site with org-publush
-- [-] New article with template
-- [-] Serv on local
+- [-] Template site with org-publish
+- [-] New article with template 
+- [X] Serv on local (Preview)
 - [X] edit and delete file
 - [X] Add to 'org-publish-project-alist'
-- [X] Publish & Preview locally
 - [X] Search with rg
 
 * INSTALLATION
