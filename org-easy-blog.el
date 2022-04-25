@@ -5,7 +5,7 @@
 ;; Author: Matthias David <darkbuffalo@gnu.re>
 ;; Keywords: comm, news
 ;; Homepage: https://github.com/DarkBuffalo/org-easy-blog
-;; Package-Requires: ((emacs "24.3") (org) (simple-httpd "1.4.0")
+;; Package-Requires: ((emacs "24.3") (org) (simple-httpd "1.4.0") (htmlize))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,6 +38,8 @@
 (require 'ox-html)
 (require 'ox-publish)
 (require 'simple-httpd)
+(require 'htmlize)
+(require 'esxml)
 
 (defcustom org-easy-blog-url nil
   "Url of the site."
@@ -132,10 +134,10 @@
 
 
 (defvar org-easy-blog--current-postdir 0
-  "Easy-hugo current postdir.")
+  "Org-easy-blog current postdir.")
 
-
-
+(defvar org-easy-blog-date-format "%b %d, %Y"
+	"Date format for the posts.")
 
 (defconst org-easy-blog--unmovable-line-default (+ org-easy-blog-help-line 4)
   "Default value of impossible to move below this line.")
@@ -198,8 +200,6 @@ CONDITION can also be a list of error conditions."
   "Multiple blog setting."
   :group 'org-easy-blog
   :type 'string)
-
-
 
 (push `((org-easy-blog-basedir . ,org-easy-blog-basedir)
 				(org-easy-blog-url . ,org-easy-blog-url)
@@ -334,7 +334,12 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 			 :html-validation-link nil
 			 :html-head-include-scripts nil
 			 :html-head-include-default-style nil
-			 :html-head "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css\">"))
+			 :html-head "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css\">"
+			 :html-postamble 'org-easy-blog-site-footer
+			 :html-preamble 'org-easy-blog-html-preamble
+			 :html-divs '((preamble "header" "top")
+                    (content "main" "content")
+                    (postamble "footer" "postamble"))))
 
 (setf (alist-get "oeb-images" org-publish-project-alist nil nil #'string=)
 			(list
@@ -346,6 +351,45 @@ S .. Sort time     M .. Magit status     ? .. Describe-mode
 
 (setf (alist-get "oeb-blog" org-publish-project-alist nil nil #'string=)
 			(list :components (list "oeb-posts" "oeb-images")))
+
+
+
+(defun org-easy-blog-html-preamble (plist)
+  "PLIST: An entry."
+  ;; Skip adding subtitle to the post if :KEYWORDS don't have 'post' has a
+  ;; keyword
+  (when (string-match-p "post" (format "%s" (plist-get plist :keywords)))
+		(if (string-equal org-export-default-language "fr")
+				(plist-put plist
+									 :subtitle (format "Publié le %s par %s."
+																		 (org-export-get-date plist "%d %b %Y")
+																		 (car (plist-get plist :author))))
+			(plist-put plist
+								 :subtitle (format "Published on %s by %s."
+																	 (org-export-get-date plist org-easy-blog-date-format)
+																	 (car (plist-get plist :author))))))
+	
+	;; Below content will be added anyways
+  (sxml-to-xml
+	 `(nav () (a (@ (href "/")) "Home")
+				 " / "
+				 (a (@ (href "/index.xml")) "Rss"))))
+
+
+
+
+(defun org-easy-blog-site-footer (info)
+	"Footer of blog from INFO."
+	;; FIXME insert button download org source
+	(when (string-match-p "post" (format "%s" (plist-get info :keywords)))
+		(plist-put info
+							 :info (format "Published on %s by %s."
+														 (org-export-get-date info org-easy-blog-date-format)
+														 (car (plist-get info :author)))))
+  (sxml-to-xml
+	 ;; FIXME: format sexp error
+   `(p "Made with " (plist-get info :creator))))
+
 
 (defun org-easy-blog-open ()
   "Open the file on the pointer."
@@ -363,9 +407,7 @@ $" (thing-at-point 'line))
 										(not (file-directory-p file)))
 					 (find-file file)))))))
 
-
-
-
+;; FIXME change blog entry format
 (defun org-easy-blog-format-blog-entry (entry style project)
   "Format notes with author and published data in the index page.
 ENTRY: file-name
@@ -389,8 +431,6 @@ PROJECT: `blog in this case."
              (concat "[" (format-time-string "%d/%m/%Y" (org-publish-find-date entry project)) "]")
              (org-publish-find-property entry :filetags project 'html)
              (org-publish-find-property entry :description project 'html)))))
-
-
 
 
 (defun org-easy-blog-delete ()
@@ -479,7 +519,7 @@ $" (thing-at-point 'line))
   "Go to next blog."
   (interactive)
   (when (< 1 (length org-easy-blog-bloglist))
-    (if (eq (- (length org-easy-blog-bloglist) 1) org-easy-blog--current-blog)
+    (if (equal (- (length org-easy-blog-bloglist) 1) org-easy-blog--current-blog)
 				(setq org-easy-blog--current-blog 0)
       (setq org-easy-blog--current-blog (+ org-easy-blog--current-blog 1)))
     (setq org-easy-blog--current-postdir 0)
