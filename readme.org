@@ -9,6 +9,10 @@ Call =M-x: org-easy-blog=
 #+attr_latex: :width 300px
 [[file:img/accueil.png]]
 
+#+caption: Saerch
+#+attr_latex: :width 300px
+[[file:img/search.gif]]
+
 #+caption: Beta test
 #+attr_latex: :width 300px
 [[file:img/beta.gif]]
